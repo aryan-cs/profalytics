@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Profalytics — data-informed decisions about academic mentors",
+  title: "Profalytics",
   description:
     "Search a researcher and see publication cadence, co-author network, funders, and lab-size estimate from OpenAlex.",
 };

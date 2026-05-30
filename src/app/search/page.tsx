@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { searchAuthors, shortId, type AuthorSummary } from "@/lib/openalex";
-import { mostRecentAffiliation } from "@/lib/analytics";
+import { primaryAffiliation } from "@/lib/analytics";
 import SearchBox from "@/components/SearchBox";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,15 @@ export default async function SearchPage({
 }) {
   const { q = "" } = await searchParams;
   const query = q.trim();
-  const results = query ? await searchAuthors(query, 15) : [];
+  const search = query
+    ? await searchAuthors(query, 25)
+    : {
+        results: [],
+        usedQuery: "",
+        droppedTerms: [],
+        resolvedInstitution: undefined,
+      };
+  const { results, usedQuery, droppedTerms, resolvedInstitution } = search;
 
   return (
     <main className="flex-1">
@@ -20,7 +28,7 @@ export default async function SearchPage({
         <div className="mb-8">
           <Link
             href="/"
-            className="text-xs uppercase tracking-[0.2em] text-muted hover:text-foreground"
+            className="text-xs uppercase tracking-[0.2em] text-muted hover:text-foreground transition-colors duration-300"
           >
             ← Profalytics
           </Link>
@@ -32,9 +40,30 @@ export default async function SearchPage({
 
         {query && (
           <div className="text-sm text-muted mb-6">
-            {results.length === 0
-              ? `No matches for "${query}".`
-              : `${results.length} candidate${results.length === 1 ? "" : "s"} for "${query}" — pick the right one:`}
+            {results.length === 0 ? (
+              <>No matches for &ldquo;{query}&rdquo;.</>
+            ) : (
+              <>
+                {results.length} candidate{results.length === 1 ? "" : "s"} for{" "}
+                &ldquo;{usedQuery}&rdquo;
+                {resolvedInstitution && (
+                  <>
+                    {" "}at{" "}
+                    <span className="text-foreground">
+                      {resolvedInstitution}
+                    </span>
+                  </>
+                )}{" "}
+                — pick the right one:
+                {droppedTerms.length > 0 && (
+                  <span className="block text-xs mt-1">
+                    No matches for the full query — dropped{" "}
+                    {droppedTerms.map((t) => `"${t}"`).join(", ")} and re-ranked
+                    candidates by affiliation match.
+                  </span>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -60,30 +89,22 @@ export default async function SearchPage({
 
 function CandidateCard({ a }: { a: AuthorSummary }) {
   const id = shortId(a.id);
-  const recent = mostRecentAffiliation(a);
-  const lastAff =
-    a.last_known_institutions?.[0]?.display_name ??
-    recent?.institution.display_name ??
-    "—";
-  const country =
-    a.last_known_institutions?.[0]?.country_code ??
-    recent?.institution.country_code ??
-    null;
+  const primary = primaryAffiliation(a);
+  const lastAff = primary?.institution.display_name ?? "—";
   const topTopic = a.topics?.[0]?.display_name;
 
   return (
     <Link
       href={`/author/${id}`}
-      className="block rounded-xl border border-border bg-card px-5 py-4 hover:border-accent transition group"
+      className="block rounded-xl border border-border bg-card px-5 py-4 hover:border-accent transition-colors duration-300 group"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-base font-medium group-hover:text-accent">
+          <div className="text-base font-medium group-hover:text-accent transition-colors duration-300">
             {a.display_name}
           </div>
           <div className="text-sm text-muted truncate mt-0.5">
             {lastAff}
-            {country ? ` · ${country}` : ""}
           </div>
           {topTopic && (
             <div className="text-xs text-muted mt-2">

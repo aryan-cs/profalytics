@@ -11,9 +11,46 @@ import {
 } from "recharts";
 
 interface Row {
+  id: string;
   name: string;
   count: number;
   years: string;
+}
+
+function AuthorTick(props: {
+  x?: number | string;
+  y?: number | string;
+  payload?: { value: string };
+  rows: Row[];
+}) {
+  const x = Number(props.x ?? 0);
+  const y = Number(props.y ?? 0);
+  const { payload, rows } = props;
+  const name = payload?.value ?? "";
+  const row = rows.find((r) => r.name === name);
+  const lines = name.length > 30 ? name.split(/\s+/) : [name];
+  const text = (
+    <text
+      x={x}
+      y={y}
+      textAnchor="end"
+      fill="currentColor"
+      fontSize={12}
+      style={{ color: "var(--foreground)" }}
+    >
+      {lines.map((line, i) => (
+        <tspan key={i} x={x} dy={i === 0 ? 4 - (lines.length - 1) * 7 : 14}>
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
+  if (!row) return text;
+  return (
+    <a href={`/author/${row.id}`} target="_blank" rel="noreferrer">
+      {text}
+    </a>
+  );
 }
 
 export default function CoauthorBars({ data }: { data: Row[] }) {
@@ -46,10 +83,11 @@ export default function CoauthorBars({ data }: { data: Row[] }) {
           <YAxis
             type="category"
             dataKey="name"
-            width={150}
-            tick={{ fontSize: 12, fill: "var(--foreground)" }}
+            width={200}
+            tick={(p) => <AuthorTick {...p} rows={data} />}
             tickLine={false}
             axisLine={false}
+            interval={0}
           />
           <Tooltip
             cursor={{ fill: "var(--border)", opacity: 0.4 }}
